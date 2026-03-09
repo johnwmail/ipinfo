@@ -76,6 +76,21 @@ fn is_cloudflare_ip(ip_str: &str) -> bool {
     }
 }
 
+/// Returns true for loopback and RFC1918/private IPs — not useful as a client IP.
+fn is_private_ip(ip_str: &str) -> bool {
+    let Ok(addr) = ip_str.parse::<IpAddr>() else {
+        return false;
+    };
+    match addr {
+        IpAddr::V4(v4) => v4.is_loopback() || v4.is_private(),
+        IpAddr::V6(v6) => v6.is_loopback(),
+    }
+}
+
+fn is_untrusted_ip(ip_str: &str) -> bool {
+    ip_str.is_empty() || is_cloudflare_ip(ip_str) || is_private_ip(ip_str)
+}
+
 #[derive(Serialize)]
 struct IpInfo {
     ip: String,
@@ -102,26 +117,26 @@ impl IpInfo {
             .map(|(k, v)| (k, v))
             .collect();
 
-        // Extract real client IP, skipping Cloudflare proxy IPs
+        // Extract real client IP, skipping CF proxy and private/loopback IPs
         let ip = {
             let cf = get("cf-connecting-ip");
-            if !cf.is_empty() && !is_cloudflare_ip(&cf) {
+            if !is_untrusted_ip(&cf) {
                 cf
             } else {
                 let real = get("x-real-ip");
-                if !real.is_empty() && !is_cloudflare_ip(&real) {
+                if !is_untrusted_ip(&real) {
                     real
                 } else {
                     let fwd = get("x-forwarded-for");
                     if !fwd.is_empty() {
-                        // Walk the chain, pick the first non-CF IP
+                        // Walk the chain, pick the first non-CF, non-private IP
                         fwd.split(',')
                             .map(|s| s.trim())
-                            .find(|ip| !ip.is_empty() && !is_cloudflare_ip(ip))
+                            .find(|ip| !is_untrusted_ip(ip))
                             .unwrap_or_default()
                             .to_string()
                     } else {
-                        "unknown".to_string()
+                        String::new()
                     }
                 }
             }
