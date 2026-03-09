@@ -3,6 +3,11 @@ use serde::Serialize;
 use serde_json;
 use worker::*;
 
+const VERSION: &str = match option_env!("IPINFO_VERSION") {
+    Some(v) => v,
+    None => "dev",
+};
+
 // Cloudflare published IP ranges: https://www.cloudflare.com/ips/
 const CF_IPV4_CIDRS: &[(u32, u8)] = &[
     // 173.245.48.0/20
@@ -256,7 +261,10 @@ impl IpInfo {
     <table>{header_rows}</table>
   </div>
 
-  <div class="footer">Powered by Rust + Wasm on Cloudflare Workers</div>
+  <div class="footer">
+    <a href="https://github.com/johnwmail/ipinfo">ipinfo v{version}</a></br>
+    Powered by Rust + Wasm on Cloudflare Workers
+  </div>
 </div>
 </body>
 </html>"##,
@@ -272,6 +280,7 @@ impl IpInfo {
                 )
             },
             header_rows = header_rows,
+            version = VERSION,
         )
     }
 }
