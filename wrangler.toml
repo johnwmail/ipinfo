@@ -1,0 +1,9 @@
+name = "ipinfo"
+main = "build/worker/shim.mjs"
+compatibility_date = "2024-01-01"
+
+[build]
+command = "worker-build --release"
+
+[env.production]
+routes = []
