@@ -1,6 +1,80 @@
+use std::net::IpAddr;
 use serde::Serialize;
 use serde_json;
 use worker::*;
+
+// Cloudflare published IP ranges: https://www.cloudflare.com/ips/
+const CF_IPV4_CIDRS: &[(u32, u8)] = &[
+    // 173.245.48.0/20
+    (0xADF53000, 20),
+    // 103.21.244.0/22
+    (0x6715F400, 22),
+    // 103.22.200.0/22
+    (0x6716C800, 22),
+    // 103.31.4.0/22
+    (0x671F0400, 22),
+    // 141.101.64.0/18
+    (0x8D654000, 18),
+    // 108.162.192.0/18
+    (0x6CA2C000, 18),
+    // 190.93.240.0/20
+    (0xBE5DF000, 20),
+    // 188.114.96.0/20
+    (0xBC726000, 20),
+    // 197.234.240.0/22
+    (0xC5EAF000, 22),
+    // 198.41.128.0/17
+    (0xC6298000, 17),
+    // 162.158.0.0/15
+    (0xA29E0000, 15),
+    // 104.16.0.0/13
+    (0x68100000, 13),
+    // 104.24.0.0/14
+    (0x68180000, 14),
+    // 172.64.0.0/13
+    (0xAC400000, 13),
+    // 131.0.72.0/22
+    (0x83004800, 22),
+];
+
+const CF_IPV6_CIDRS: &[(u128, u8)] = &[
+    // 2400:cb00::/32
+    (0x2400_cb00_0000_0000_0000_0000_0000_0000, 32),
+    // 2606:4700::/32
+    (0x2606_4700_0000_0000_0000_0000_0000_0000, 32),
+    // 2803:f800::/32
+    (0x2803_f800_0000_0000_0000_0000_0000_0000, 32),
+    // 2405:b500::/32
+    (0x2405_b500_0000_0000_0000_0000_0000_0000, 32),
+    // 2405:8100::/32
+    (0x2405_8100_0000_0000_0000_0000_0000_0000, 32),
+    // 2a06:98c0::/29
+    (0x2a06_98c0_0000_0000_0000_0000_0000_0000, 29),
+    // 2c0f:f248::/32
+    (0x2c0f_f248_0000_0000_0000_0000_0000_0000, 32),
+];
+
+fn is_cloudflare_ip(ip_str: &str) -> bool {
+    let Ok(addr) = ip_str.parse::<IpAddr>() else {
+        return false;
+    };
+    match addr {
+        IpAddr::V4(v4) => {
+            let ip = u32::from(v4);
+            CF_IPV4_CIDRS.iter().any(|&(network, prefix_len)| {
+                let mask = if prefix_len == 0 { 0 } else { !0u32 << (32 - prefix_len) };
+                (ip & mask) == (network & mask)
+            })
+        }
+        IpAddr::V6(v6) => {
+            let ip = u128::from(v6);
+            CF_IPV6_CIDRS.iter().any(|&(network, prefix_len)| {
+                let mask = if prefix_len == 0 { 0 } else { !0u128 << (128 - prefix_len) };
+                (ip & mask) == (network & mask)
+            })
+        }
+    }
+}
 
 #[derive(Serialize)]
 struct IpInfo {
@@ -28,25 +102,32 @@ impl IpInfo {
             .map(|(k, v)| (k, v))
             .collect();
 
-        // CF headers for geo info
+        // Extract real client IP, skipping Cloudflare proxy IPs
         let ip = {
             let cf = get("cf-connecting-ip");
-            if !cf.is_empty() {
+            if !cf.is_empty() && !is_cloudflare_ip(&cf) {
                 cf
             } else {
                 let real = get("x-real-ip");
-                if !real.is_empty() {
+                if !real.is_empty() && !is_cloudflare_ip(&real) {
                     real
                 } else {
                     let fwd = get("x-forwarded-for");
                     if !fwd.is_empty() {
-                        fwd.split(',').next().unwrap_or_default().trim().to_string()
+                        // Walk the chain, pick the first non-CF IP
+                        fwd.split(',')
+                            .map(|s| s.trim())
+                            .find(|ip| !ip.is_empty() && !is_cloudflare_ip(ip))
+                            .unwrap_or_default()
+                            .to_string()
                     } else {
                         "unknown".to_string()
                     }
                 }
             }
-        };
+        }
+        .trim().to_string();
+        let ip = if ip.is_empty() { "unknown".to_string() } else { ip };
 
         IpInfo {
             ip,
