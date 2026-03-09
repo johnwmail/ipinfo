@@ -321,3 +321,237 @@ async fn fetch(req: Request, _env: Env, _ctx: Context) -> Result<Response> {
         Ok(resp)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // --- is_cloudflare_ip ---
+
+    #[test]
+    fn cf_ip_173_245_48_1() {
+        assert!(is_cloudflare_ip("173.245.48.1"));
+    }
+
+    #[test]
+    fn cf_ip_104_16_0_1() {
+        assert!(is_cloudflare_ip("104.16.0.1"));
+    }
+
+    #[test]
+    fn cf_ip_162_158_0_1() {
+        assert!(is_cloudflare_ip("162.158.0.1"));
+    }
+
+    #[test]
+    fn cf_ip_172_64_0_1() {
+        assert!(is_cloudflare_ip("172.64.0.1"));
+    }
+
+    #[test]
+    fn cf_ip_131_0_72_1() {
+        assert!(is_cloudflare_ip("131.0.72.1"));
+    }
+
+    #[test]
+    fn cf_ipv6_2400_cb00() {
+        assert!(is_cloudflare_ip("2400:cb00::1"));
+    }
+
+    #[test]
+    fn cf_ipv6_2606_4700() {
+        assert!(is_cloudflare_ip("2606:4700::1"));
+    }
+
+    #[test]
+    fn not_cf_ip_8_8_8_8() {
+        assert!(!is_cloudflare_ip("8.8.8.8"));
+    }
+
+    #[test]
+    fn not_cf_ip_203_0_113_50() {
+        assert!(!is_cloudflare_ip("203.0.113.50"));
+    }
+
+    #[test]
+    fn not_cf_ipv6_2001_db8() {
+        assert!(!is_cloudflare_ip("2001:db8::1"));
+    }
+
+    #[test]
+    fn cf_ip_invalid_string() {
+        assert!(!is_cloudflare_ip("not-an-ip"));
+    }
+
+    #[test]
+    fn cf_ip_empty() {
+        assert!(!is_cloudflare_ip(""));
+    }
+
+    // --- is_private_ip ---
+
+    #[test]
+    fn private_loopback() {
+        assert!(is_private_ip("127.0.0.1"));
+    }
+
+    #[test]
+    fn private_10_x() {
+        assert!(is_private_ip("10.0.0.1"));
+    }
+
+    #[test]
+    fn private_172_16_x() {
+        assert!(is_private_ip("172.16.0.1"));
+    }
+
+    #[test]
+    fn private_192_168_x() {
+        assert!(is_private_ip("192.168.1.1"));
+    }
+
+    #[test]
+    fn private_ipv6_loopback() {
+        assert!(is_private_ip("::1"));
+    }
+
+    #[test]
+    fn not_private_public_ip() {
+        assert!(!is_private_ip("8.8.8.8"));
+    }
+
+    #[test]
+    fn not_private_cf_ip() {
+        // CF IPs are not private, they're filtered separately
+        assert!(!is_private_ip("104.16.0.1"));
+    }
+
+    // --- is_untrusted_ip ---
+
+    #[test]
+    fn untrusted_empty() {
+        assert!(is_untrusted_ip(""));
+    }
+
+    #[test]
+    fn untrusted_private() {
+        assert!(is_untrusted_ip("127.0.0.1"));
+    }
+
+    #[test]
+    fn untrusted_cf() {
+        assert!(is_untrusted_ip("104.16.0.1"));
+    }
+
+    #[test]
+    fn trusted_public() {
+        assert!(!is_untrusted_ip("203.0.113.50"));
+    }
+
+    // --- html_escape ---
+
+    #[test]
+    fn escape_ampersand() {
+        assert_eq!(html_escape("a&b"), "a&amp;b");
+    }
+
+    #[test]
+    fn escape_angle_brackets() {
+        assert_eq!(html_escape("<script>"), "&lt;script&gt;");
+    }
+
+    #[test]
+    fn escape_quotes() {
+        assert_eq!(html_escape(r#"say "hi""#), "say &quot;hi&quot;");
+    }
+
+    #[test]
+    fn escape_clean_string() {
+        assert_eq!(html_escape("hello world"), "hello world");
+    }
+
+    // --- is_browser ---
+
+    #[test]
+    fn browser_accept_html() {
+        assert!(is_browser("text/html,application/xhtml+xml,application/xml;q=0.9"));
+    }
+
+    #[test]
+    fn not_browser_curl() {
+        assert!(!is_browser("*/*"));
+    }
+
+    #[test]
+    fn not_browser_json() {
+        assert!(!is_browser("application/json"));
+    }
+
+    #[test]
+    fn not_browser_empty() {
+        assert!(!is_browser(""));
+    }
+
+    // --- IpInfo output ---
+
+    fn make_info(ip: &str, country: &str, city: &str) -> IpInfo {
+        IpInfo {
+            ip: ip.to_string(),
+            user_agent: "curl/8.0".to_string(),
+            accept_language: "en-US".to_string(),
+            accept: "*/*".to_string(),
+            country: country.to_string(),
+            city: city.to_string(),
+            region: String::new(),
+            timezone: String::new(),
+            colo: "SJC".to_string(),
+            headers: vec![
+                ("user-agent".to_string(), "curl/8.0".to_string()),
+            ],
+        }
+    }
+
+    #[test]
+    fn plain_text_has_ip() {
+        let info = make_info("1.2.3.4", "US", "San Jose");
+        let text = info.to_plain_text();
+        assert!(text.contains("1.2.3.4"));
+        assert!(text.contains("US"));
+        assert!(text.contains("San Jose"));
+        assert!(text.contains("curl/8.0"));
+    }
+
+    #[test]
+    fn plain_text_omits_empty_fields() {
+        let info = make_info("1.2.3.4", "", "");
+        let text = info.to_plain_text();
+        assert!(!text.contains("Country"));
+        assert!(!text.contains("City"));
+    }
+
+    #[test]
+    fn html_has_ip() {
+        let info = make_info("1.2.3.4", "US", "");
+        let html = info.to_html();
+        assert!(html.contains("1.2.3.4"));
+        assert!(html.contains("<!DOCTYPE html>"));
+        assert!(html.contains("US"));
+    }
+
+    #[test]
+    fn html_escapes_xss() {
+        let mut info = make_info("1.2.3.4", "", "");
+        info.user_agent = "<script>alert(1)</script>".to_string();
+        let html = info.to_html();
+        assert!(!html.contains("<script>alert"));
+        assert!(html.contains("&lt;script&gt;"));
+    }
+
+    #[test]
+    fn html_no_geo_card_when_empty() {
+        let info = make_info("1.2.3.4", "", "");
+        // colo is set, so geo card should still appear
+        let html = info.to_html();
+        assert!(html.contains("SJC"));
+    }
+}

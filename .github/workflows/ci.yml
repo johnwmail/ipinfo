@@ -25,6 +25,19 @@ jobs:
       - name: Clippy
         run: cargo clippy --target wasm32-unknown-unknown -- -D warnings
 
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Run tests
+        run: cargo test
+
   build:
     name: Build Wasm
     runs-on: ubuntu-latest
