@@ -303,32 +303,31 @@ async fn fetch(req: Request, _env: Env, _ctx: Context) -> Result<Response> {
 
     // Route: /json — always return JSON
     let path = req.path();
-    if path == "/json" {
+    let mut resp = if path == "/json" {
         let json = serde_json::to_string_pretty(&info).unwrap_or_default();
         let mut resp = Response::ok(json)?;
         resp.headers_mut().set("Content-Type", "application/json; charset=utf-8")?;
         resp.headers_mut().set("Access-Control-Allow-Origin", "*")?;
-        return Ok(resp);
-    }
-
-    // Route: /ip — always return plain IP
-    if path == "/ip" {
+        resp
+    } else if path == "/ip" {
+        // Route: /ip — always return plain IP
         let mut resp = Response::ok(format!("{}\n", info.ip))?;
         resp.headers_mut().set("Content-Type", "text/plain; charset=utf-8")?;
-        return Ok(resp);
-    }
-
-    // Route: / — content negotiation
-    if is_browser(&info.accept) {
+        resp
+    } else if is_browser(&info.accept) {
+        // Route: / — content negotiation
         let mut resp = Response::ok(info.to_html(&host))?;
         resp.headers_mut().set("Content-Type", "text/html; charset=utf-8")?;
-        Ok(resp)
+        resp
     } else {
         // curl / wget / CLI
         let mut resp = Response::ok(info.to_plain_text())?;
         resp.headers_mut().set("Content-Type", "text/plain; charset=utf-8")?;
-        Ok(resp)
-    }
+        resp
+    };
+
+    resp.headers_mut().set("Cache-Control", "no-store, no-cache, must-revalidate")?;
+    Ok(resp)
 }
 
 #[cfg(test)]
