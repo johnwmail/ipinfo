@@ -25,7 +25,9 @@ jobs:
         run: cargo install worker-build
 
       - name: Stamp version
-        run: sed -i 's/const VERSION: \&str = "dev"/const VERSION: \&str = "${{ github.ref_name }}"/' src/lib.rs
+        env:
+          TAG: ${{ github.ref_name }}
+        run: sed -i "s|\"dev\"|\"${TAG}\"|" src/lib.rs
 
       - name: Build
         run: worker-build --release
