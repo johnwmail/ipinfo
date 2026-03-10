@@ -186,7 +186,7 @@ impl IpInfo {
         out
     }
 
-    fn to_html(&self) -> String {
+    fn to_html(&self, host: &str) -> String {
         let mut header_rows = String::new();
         for (k, v) in &self.headers {
             header_rows.push_str(&format!(
@@ -241,7 +241,7 @@ impl IpInfo {
 </head>
 <body>
 <div class="container">
-  <h1>$ curl ip.YOUR_DOMAIN</h1>
+  <h1>$ curl {host}</h1>
   <div class="ip-display">{ip}</div>
 
   <div class="card">
@@ -278,6 +278,7 @@ impl IpInfo {
                 )
             },
             header_rows = header_rows,
+            host = html_escape(host),
             version = VERSION,
         )
     }
@@ -297,6 +298,7 @@ fn is_browser(accept: &str) -> bool {
 #[event(fetch)]
 async fn fetch(req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     let headers = req.headers();
+    let host = headers.get("host").ok().flatten().unwrap_or_default();
     let info = IpInfo::from_request(&req, headers);
 
     // Route: /json — always return JSON
@@ -318,7 +320,7 @@ async fn fetch(req: Request, _env: Env, _ctx: Context) -> Result<Response> {
 
     // Route: / — content negotiation
     if is_browser(&info.accept) {
-        let mut resp = Response::ok(info.to_html())?;
+        let mut resp = Response::ok(info.to_html(&host))?;
         resp.headers_mut().set("Content-Type", "text/html; charset=utf-8")?;
         Ok(resp)
     } else {
@@ -539,17 +541,18 @@ mod tests {
     #[test]
     fn html_has_ip() {
         let info = make_info("1.2.3.4", "US", "");
-        let html = info.to_html();
+        let html = info.to_html("ip.example.com");
         assert!(html.contains("1.2.3.4"));
         assert!(html.contains("<!DOCTYPE html>"));
         assert!(html.contains("US"));
+        assert!(html.contains("ip.example.com"));
     }
 
     #[test]
     fn html_escapes_xss() {
         let mut info = make_info("1.2.3.4", "", "");
         info.user_agent = "<script>alert(1)</script>".to_string();
-        let html = info.to_html();
+        let html = info.to_html("ip.example.com");
         assert!(!html.contains("<script>alert"));
         assert!(html.contains("&lt;script&gt;"));
     }
@@ -558,7 +561,7 @@ mod tests {
     fn html_no_geo_card_when_empty() {
         let info = make_info("1.2.3.4", "", "");
         // colo is set, so geo card should still appear
-        let html = info.to_html();
+        let html = info.to_html("ip.example.com");
         assert!(html.contains("SJC"));
     }
 }

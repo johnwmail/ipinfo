@@ -26,6 +26,8 @@ jobs:
 
       - name: Build
         run: worker-build --release
+        env:
+          IPINFO_VERSION: ${{ github.ref_name }}
 
       - name: Deploy
         uses: cloudflare/wrangler-action@v3
