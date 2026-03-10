@@ -1,6 +1,5 @@
 use std::net::IpAddr;
 use serde::Serialize;
-use serde_json;
 use worker::*;
 
 const VERSION: &str = match option_env!("IPINFO_VERSION") {
@@ -119,7 +118,6 @@ impl IpInfo {
         // Collect all headers
         let all_headers: Vec<(String, String)> = headers
             .entries()
-            .map(|(k, v)| (k, v))
             .collect();
 
         // Extract real client IP, skipping CF proxy and private/loopback IPs
@@ -158,7 +156,7 @@ impl IpInfo {
             city: get("cf-ipcity"),
             region: get("cf-region"),
             timezone: get("cf-timezone"),
-            colo: get("cf-ray").split('-').last().unwrap_or_default().to_string(),
+            colo: get("cf-ray").split('-').next_back().unwrap_or_default().to_string(),
             headers: all_headers,
         }
     }
@@ -299,7 +297,7 @@ fn is_browser(accept: &str) -> bool {
 #[event(fetch)]
 async fn fetch(req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     let headers = req.headers();
-    let info = IpInfo::from_request(&req, &headers);
+    let info = IpInfo::from_request(&req, headers);
 
     // Route: /json — always return JSON
     let path = req.path();
