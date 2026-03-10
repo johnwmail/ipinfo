@@ -2,10 +2,7 @@ use std::net::IpAddr;
 use serde::Serialize;
 use worker::*;
 
-const VERSION: &str = match option_env!("IPINFO_VERSION") {
-    Some(v) => v,
-    None => "dev",
-};
+const VERSION: &str = "dev";
 
 // Cloudflare published IP ranges: https://www.cloudflare.com/ips/
 const CF_IPV4_CIDRS: &[(u32, u8)] = &[

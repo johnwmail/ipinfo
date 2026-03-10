@@ -24,10 +24,11 @@ jobs:
       - name: Install worker-build
         run: cargo install worker-build
 
+      - name: Stamp version
+        run: sed -i 's/const VERSION: \&str = "dev"/const VERSION: \&str = "${{ github.ref_name }}"/' src/lib.rs
+
       - name: Build
         run: worker-build --release
-        env:
-          IPINFO_VERSION: ${{ github.ref_name }}
 
       - name: Deploy
         uses: cloudflare/wrangler-action@v3
