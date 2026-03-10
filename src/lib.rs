@@ -260,7 +260,7 @@ impl IpInfo {
   </div>
 
   <div class="footer">
-    <a href="https://github.com/johnwmail/ipinfo">ipinfo v{version}</a></br>
+    <a href="https://github.com/johnwmail/ipinfo">ipinfo {version}</a></br>
     Powered by Rust + Wasm on Cloudflare Workers
   </div>
 </div>
