@@ -7,55 +7,40 @@ on:
 
 jobs:
   check:
-    name: Check & Lint
+    name: Typecheck & Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v5
         with:
-          targets: wasm32-unknown-unknown
-          components: clippy
+          node-version: 24
+          cache: npm
 
-      - uses: Swatinem/rust-cache@v2
+      - run: npm ci
 
-      - name: Cargo check
-        run: cargo check --target wasm32-unknown-unknown
+      - name: Typecheck
+        run: npm run typecheck
 
-      - name: Clippy
-        run: cargo clippy --target wasm32-unknown-unknown -- -D warnings
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: dtolnay/rust-toolchain@stable
-
-      - uses: Swatinem/rust-cache@v2
-
-      - name: Run tests
-        run: cargo test
+      - name: Test
+        run: npm test
 
   build:
-    name: Build Wasm
+    name: Build Worker
     runs-on: ubuntu-latest
     needs: check
     steps:
       - uses: actions/checkout@v5
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v5
         with:
-          targets: wasm32-unknown-unknown
+          node-version: 24
+          cache: npm
 
-      - uses: Swatinem/rust-cache@v2
+      - run: npm ci
 
-      - name: Install worker-build
-        run: cargo install worker-build
-
-      - name: Build
-        run: worker-build --release
+      - name: Build (dry-run)
+        run: npm run build
 
       - name: Show output size
-        run: ls -lh build/worker/
+        run: ls -lh dist/
