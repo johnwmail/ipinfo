@@ -311,14 +311,19 @@ async fn fetch(req: Request, _env: Env, _ctx: Context) -> Result<Response> {
         let mut resp = Response::ok(format!("{}\n", info.ip))?;
         resp.headers_mut().set("Content-Type", "text/plain; charset=utf-8")?;
         resp
+    } else if path == "/text" {
+        // Route: /text — full info as plain text
+        let mut resp = Response::ok(info.to_plain_text())?;
+        resp.headers_mut().set("Content-Type", "text/plain; charset=utf-8")?;
+        resp
     } else if is_browser(&info.accept) {
-        // Route: / — content negotiation
+        // Route: / — HTML for browsers
         let mut resp = Response::ok(info.to_html(&host))?;
         resp.headers_mut().set("Content-Type", "text/html; charset=utf-8")?;
         resp
     } else {
-        // curl / wget / CLI
-        let mut resp = Response::ok(info.to_plain_text())?;
+        // curl / wget / CLI — just the IP
+        let mut resp = Response::ok(format!("{}\n", info.ip))?;
         resp.headers_mut().set("Content-Type", "text/plain; charset=utf-8")?;
         resp
     };

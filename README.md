@@ -7,11 +7,14 @@ Like `ifconfig.me` or `icanhazip.com` — but self-hosted, open source, and runn
 ## Usage
 
 ```bash
-# Your IP
+# Just your IP (curl / CLI)
 curl ip.example.com
 
-# Just the IP (for scripts)
+# Just your IP (explicit)
 curl ip.example.com/ip
+
+# Full info as plain text
+curl ip.example.com/text
 
 # Full info as JSON
 curl ip.example.com/json
@@ -21,8 +24,8 @@ Open in a browser for a styled dark-mode dashboard showing your IP, geo location
 
 ## Features
 
-- **Content negotiation** — HTML for browsers, plain text for `curl` / CLI
-- **Three endpoints** — `/` (auto), `/ip` (plain IP), `/json` (structured)
+- **Content negotiation** — HTML dashboard for browsers, raw IP for `curl` / CLI
+- **Endpoints** — `/` (HTML or IP), `/ip` (plain IP), `/text` (full text), `/json` (structured)
 - **Geo info** from Cloudflare headers (country, city, region, timezone, colo)
 - **All request headers** displayed
 - **Cloudflare IP filtering** — skips CF proxy and private IPs to find the real client IP
