@@ -55,8 +55,21 @@ jobs:
         run: sed -i "s|\"dev\"|\"${TAG}\"|" src/version.ts
 
       - name: Deploy
+        id: deploy
         if: env.VERCEL_TOKEN != ''
-        run: npx vercel deploy --prod --yes
+        run: |
+          set -euo pipefail
+          url="$(npx vercel deploy --prod --yes 2>/dev/null | tail -n1)"
+          echo "Deployment URL: $url"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke test
+        if: env.VERCEL_TOKEN != ''
+        run: |
+          set -euo pipefail
+          body="$(npx vercel curl "${{ steps.deploy.outputs.url }}/ip" -y)"
+          echo "Response: $body"
+          echo "$body" | grep -Eq '^[0-9A-Fa-f:.]+$'
 
   release:
     name: Create GitHub Release
