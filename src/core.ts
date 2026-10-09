@@ -1,4 +1,4 @@
-import { VERSION } from "./version";
+import { VERSION } from "./version.js";
 
 // Cloudflare published IP ranges: https://www.cloudflare.com/ips/
 const CF_IPV4_CIDRS: Array<[string, number]> = [

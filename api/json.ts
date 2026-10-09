@@ -1,4 +1,4 @@
-import { handleRequest } from "../src/core";
+import { handleRequest } from "../src/core.js";
 
 export default {
   fetch(request: Request): Response {

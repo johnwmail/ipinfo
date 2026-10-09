@@ -12,7 +12,7 @@ import {
   toHtml,
   toPlainText,
   type IpInfo,
-} from "../src/core";
+} from "../src/core.js";
 
 // --- isCloudflareIp ---
 

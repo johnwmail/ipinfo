@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import cloudflare from "../src/cloudflare";
-import apiRoot from "../api/root";
-import apiIp from "../api/ip";
-import apiText from "../api/text";
-import apiJson from "../api/json";
+import cloudflare from "../src/cloudflare.js";
+import apiRoot from "../api/root.js";
+import apiIp from "../api/ip.js";
+import apiText from "../api/text.js";
+import apiJson from "../api/json.js";
 
 const headers = { "cf-connecting-ip": "198.51.100.4" };
 
