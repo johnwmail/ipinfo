@@ -265,10 +265,10 @@ export function detectPlatform(headers: Headers): string {
   if (headers.has("x-vercel-id") || headers.has("x-vercel-ip-country")) {
     return "Vercel Serverless";
   }
-  return "Cloudflare Workers";
+  return "the Edge";
 }
 
-export function toHtml(info: IpInfo, host: string, platform = "Cloudflare Workers"): string {
+export function toHtml(info: IpInfo, host: string, platform = "the Edge"): string {
   let headerRows = "";
   for (const [k, v] of info.headers) {
     headerRows += `<tr><td>${htmlEscape(k)}</td><td>${htmlEscape(v)}</td></tr>`;

@@ -144,8 +144,8 @@ describe("detectPlatform", () => {
     expect(detectPlatform(new Headers({ "x-vercel-ip-country": "HK" }))).toBe("Vercel Serverless");
   });
 
-  it("falls back to Cloudflare Workers", () => {
-    expect(detectPlatform(new Headers())).toBe("Cloudflare Workers");
+  it("falls back to the Edge", () => {
+    expect(detectPlatform(new Headers())).toBe("the Edge");
   });
 });
 
