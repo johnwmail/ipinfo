@@ -253,7 +253,7 @@ export function detectPlatform(headers: Headers): string {
     return "Cloudflare Workers";
   }
   if (headers.has("x-vercel-id") || headers.has("x-vercel-ip-country")) {
-    return "Vercel";
+    return "Vercel Serverless";
   }
   return "the Edge";
 }

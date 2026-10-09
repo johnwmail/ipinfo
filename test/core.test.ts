@@ -125,8 +125,8 @@ describe("detectPlatform", () => {
   });
 
   it("detects Vercel from x-vercel headers", () => {
-    expect(detectPlatform(new Headers({ "x-vercel-id": "hnd1::abc" }))).toBe("Vercel");
-    expect(detectPlatform(new Headers({ "x-vercel-ip-country": "HK" }))).toBe("Vercel");
+    expect(detectPlatform(new Headers({ "x-vercel-id": "hnd1::abc" }))).toBe("Vercel Serverless");
+    expect(detectPlatform(new Headers({ "x-vercel-ip-country": "HK" }))).toBe("Vercel Serverless");
   });
 
   it("falls back to the Edge", () => {
@@ -282,7 +282,7 @@ describe("handleRequest", () => {
       request("/", { "x-vercel-id": "hnd1::abc", accept: "text/html" }),
       "/",
     );
-    expect(await vercelRes.text()).toContain("Powered by TypeScript on Vercel");
+    expect(await vercelRes.text()).toContain("Powered by TypeScript on Vercel Serverless");
   });
 
   it("sets no-store cache headers", () => {
