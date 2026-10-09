@@ -184,18 +184,28 @@ function decodeSafe(value: string): string {
 }
 
 export function extractClientIp(get: (name: string) => string): string {
+  const firstTrusted = (value: string): string =>
+    value
+      .split(",")
+      .map((part) => part.trim())
+      .find((ip) => !isUntrustedIp(ip)) ?? "";
+
   const cf = get("cf-connecting-ip");
   if (!isUntrustedIp(cf)) return cf.trim();
+
+  // Vercel-native and not overwritten by an upstream proxy.
+  const vercelForwarded = get("x-vercel-forwarded-for");
+  if (vercelForwarded) {
+    const found = firstTrusted(vercelForwarded);
+    if (found) return found;
+  }
 
   const real = get("x-real-ip");
   if (!isUntrustedIp(real)) return real.trim();
 
   const forwarded = get("x-forwarded-for");
   if (forwarded) {
-    const found = forwarded
-      .split(",")
-      .map((part) => part.trim())
-      .find((ip) => !isUntrustedIp(ip));
+    const found = firstTrusted(forwarded);
     if (found) return found;
   }
 
@@ -255,10 +265,10 @@ export function detectPlatform(headers: Headers): string {
   if (headers.has("x-vercel-id") || headers.has("x-vercel-ip-country")) {
     return "Vercel Serverless";
   }
-  return "the Edge";
+  return "Cloudflare Workers";
 }
 
-export function toHtml(info: IpInfo, host: string, platform = "the Edge"): string {
+export function toHtml(info: IpInfo, host: string, platform = "Cloudflare Workers"): string {
   let headerRows = "";
   for (const [k, v] of info.headers) {
     headerRows += `<tr><td>${htmlEscape(k)}</td><td>${htmlEscape(v)}</td></tr>`;

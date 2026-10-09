@@ -77,6 +77,21 @@ describe("extractClientIp", () => {
     expect(extractClientIp(get)).toBe("198.51.100.7");
   });
 
+  it("uses x-vercel-forwarded-for before x-forwarded-for", () => {
+    const headers: Record<string, string> = {
+      "x-vercel-forwarded-for": "198.51.100.8",
+      "x-forwarded-for": "203.0.113.99",
+    };
+    expect(extractClientIp((name) => headers[name] ?? "")).toBe("198.51.100.8");
+  });
+
+  it("skips untrusted hops in x-vercel-forwarded-for", () => {
+    const headers: Record<string, string> = {
+      "x-vercel-forwarded-for": "104.16.0.1, 127.0.0.1, 198.51.100.9",
+    };
+    expect(extractClientIp((name) => headers[name] ?? "")).toBe("198.51.100.9");
+  });
+
   it("falls back to x-forwarded-for, skipping untrusted hops", () => {
     const headers: Record<string, string> = {
       "x-forwarded-for": "104.16.0.1, 127.0.0.1, 198.51.100.9",
@@ -129,8 +144,8 @@ describe("detectPlatform", () => {
     expect(detectPlatform(new Headers({ "x-vercel-ip-country": "HK" }))).toBe("Vercel Serverless");
   });
 
-  it("falls back to the Edge", () => {
-    expect(detectPlatform(new Headers())).toBe("the Edge");
+  it("falls back to Cloudflare Workers", () => {
+    expect(detectPlatform(new Headers())).toBe("Cloudflare Workers");
   });
 });
 
