@@ -247,7 +247,18 @@ export function htmlEscape(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-export function toHtml(info: IpInfo, host: string): string {
+/** Best-effort detection of the hosting platform from edge-injected headers. */
+export function detectPlatform(headers: Headers): string {
+  if (headers.has("cf-ray") || headers.has("cf-connecting-ip")) {
+    return "Cloudflare Workers";
+  }
+  if (headers.has("x-vercel-id") || headers.has("x-vercel-ip-country")) {
+    return "Vercel";
+  }
+  return "the Edge";
+}
+
+export function toHtml(info: IpInfo, host: string, platform = "the Edge"): string {
   let headerRows = "";
   for (const [k, v] of info.headers) {
     headerRows += `<tr><td>${htmlEscape(k)}</td><td>${htmlEscape(v)}</td></tr>`;
@@ -317,7 +328,7 @@ export function toHtml(info: IpInfo, host: string): string {
 
   <div class="footer">
     <a href="https://github.com/johnwmail/ipinfo">ipinfo ${VERSION}</a></br>
-    Powered by TypeScript on Cloudflare Workers &amp; Vercel
+    Powered by TypeScript on ${htmlEscape(platform)}
   </div>
 </div>
 </body>
@@ -357,7 +368,7 @@ export function handleRequest(request: Request, path: string): Response {
   } else if (path === "/text") {
     response = textResponse(toPlainText(info));
   } else if (isBrowser(info.accept)) {
-    response = new Response(toHtml(info, host), {
+    response = new Response(toHtml(info, host, detectPlatform(request.headers)), {
       status: 200,
       headers: { "content-type": "text/html; charset=utf-8" },
     });

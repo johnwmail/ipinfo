@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildIpInfo,
+  detectPlatform,
   extractClientIp,
   handleRequest,
   htmlEscape,
@@ -110,6 +111,26 @@ describe("isBrowser", () => {
     expect(isBrowser("*/*")).toBe(false);
     expect(isBrowser("application/json")).toBe(false);
     expect(isBrowser("")).toBe(false);
+  });
+});
+
+// --- detectPlatform ---
+
+describe("detectPlatform", () => {
+  it("detects Cloudflare from cf headers", () => {
+    expect(detectPlatform(new Headers({ "cf-ray": "abc-SJC" }))).toBe("Cloudflare Workers");
+    expect(detectPlatform(new Headers({ "cf-connecting-ip": "1.2.3.4" }))).toBe(
+      "Cloudflare Workers",
+    );
+  });
+
+  it("detects Vercel from x-vercel headers", () => {
+    expect(detectPlatform(new Headers({ "x-vercel-id": "hnd1::abc" }))).toBe("Vercel");
+    expect(detectPlatform(new Headers({ "x-vercel-ip-country": "HK" }))).toBe("Vercel");
+  });
+
+  it("falls back to the Edge", () => {
+    expect(detectPlatform(new Headers())).toBe("the Edge");
   });
 });
 
@@ -248,6 +269,20 @@ describe("handleRequest", () => {
     );
     expect(res.headers.get("content-type")).toContain("text/html");
     expect(await res.text()).toContain("<!DOCTYPE html>");
+  });
+
+  it("shows the detected platform in the footer", async () => {
+    const cfRes = handleRequest(
+      request("/", { "cf-ray": "abc-SJC", accept: "text/html" }),
+      "/",
+    );
+    expect(await cfRes.text()).toContain("Powered by TypeScript on Cloudflare Workers");
+
+    const vercelRes = handleRequest(
+      request("/", { "x-vercel-id": "hnd1::abc", accept: "text/html" }),
+      "/",
+    );
+    expect(await vercelRes.text()).toContain("Powered by TypeScript on Vercel");
   });
 
   it("sets no-store cache headers", () => {
