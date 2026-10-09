@@ -9,7 +9,7 @@
     "deploy:vercel": "vercel deploy --prod",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build": "wrangler deploy --dry-run --outdir dist"
+    "build:worker": "wrangler deploy --dry-run --outdir dist"
   },
   "devDependencies": {
     "typescript": "^7.0.2",

@@ -58,7 +58,7 @@ npm install
 npm run dev        # wrangler dev (local Cloudflare runtime)
 npm test           # vitest
 npm run typecheck  # tsc --noEmit
-npm run build      # wrangler deploy --dry-run
+npm run build:worker  # wrangler deploy --dry-run
 ```
 
 ## Deploy
@@ -81,8 +81,8 @@ Both platforms import the exact same `src/core.ts`; only the thin entry points d
 ## CI/CD (GitHub Actions)
 
 - **CI** (`ci.yml`) runs typecheck, tests, and a Worker build on every push/PR.
-- **Deploy** (`deploy.yml`) runs on tags (`v*`) and deploys to Cloudflare Workers.
-  It also deploys to Vercel when a `VERCEL_TOKEN` secret is configured.
+- **Deploy** (`deploy.yml`) runs on tags (`v*`), deploys to Cloudflare Workers and
+  Vercel, and creates a GitHub Release for the tag.
 
 Required secrets:
 

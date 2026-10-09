@@ -40,7 +40,7 @@ jobs:
       - run: npm ci
 
       - name: Build (dry-run)
-        run: npm run build
+        run: npm run build:worker
 
       - name: Show output size
         run: ls -lh dist/
